@@ -2,10 +2,9 @@
 
 namespace Nexmo\Account;
 
+use Nexmo\Account\Exception\NotFoundException;
 use Nexmo\Client\Exception;
 use Nexmo\Client\APIResource;
-use Nexmo\Client\ClientAwareTrait;
-use Nexmo\Client\ClientAwareInterface;
 use Nexmo\Client\Exception\Request as ExceptionRequest;
 use Nexmo\Client\Exception\Validation;
 use Nexmo\Entity\Filter\KeyValueFilter;
@@ -13,13 +12,8 @@ use Nexmo\Entity\Filter\KeyValueFilter;
 /**
  * @todo Unify the exception handling to avoid duplicated code and logic (ie: getPrefixPricing())
  */
-class Client implements ClientAwareInterface
+class Client
 {
-    /**
-     * @deprecated This object will be dropping support for ClientAwareInterface in the future
-     */
-    use ClientAwareTrait;
-
     /**
      * @var APIResource
      */
@@ -30,48 +24,16 @@ class Client implements ClientAwareInterface
      */
     protected $secretsAPI;
 
-    public function __construct(?APIResource $accountAPI = null, ?APIResource $secretsAPI = null)
+    /**
+     * @var PriceFactory
+     */
+    protected $priceFactory;
+
+    public function __construct(APIResource $accountAPI, APIResource $secretsAPI, PriceFactory $priceFactory)
     {
         $this->accountAPI = $accountAPI;
         $this->secretsAPI = $secretsAPI;
-    }
-
-    /**
-     * Shim to handle older instatiations of this class
-     * @deprecated Will remove in v3
-     */
-    protected function getAccountAPI() : APIResource
-    {
-        if (is_null($this->accountAPI)) {
-            $api = new APIResource();
-            $api->setClient($this->getClient())
-                ->setBaseUrl($this->getClient()->getRestUrl())
-                ->setIsHAL(false)
-                ->setBaseUri('/account')
-                ->setCollectionName('')
-            ;
-            $this->accountAPI = $api;
-        }
-        return clone $this->accountAPI;
-    }
-
-    /**
-     * Shim to handle older instatiations of this class
-     * @deprecated Will remove in v3
-     */
-    protected function getSecretsAPI() : APIResource
-    {
-        if (is_null($this->secretsAPI)) {
-            $api = new APIResource();
-            $api->setClient($this->getClient())
-                ->setBaseUrl($this->getClient()->getApiUrl())
-                ->setIsHAL(false)
-                ->setBaseUri('/accounts')
-                ->setCollectionName('')
-            ;
-            $this->secretsAPI = $api;
-        }
-        return clone $this->secretsAPI;
+        $this->priceFactory = $priceFactory;
     }
 
     /**
@@ -79,25 +41,20 @@ class Client implements ClientAwareInterface
      */
     public function getPrefixPricing($prefix) : array
     {
-        $api = $this->getAccountAPI();
-        $api->setBaseUri('/account/get-prefix-pricing/outbound');
-        $api->setCollectionName('prices');
-
-        $data = $api->search(new KeyValueFilter(['prefix' => $prefix]));
-
-        if (count($data) == 0) {
-            return [];
-        }
-
-        // Multiple countries can match each prefix
+        $data = $this->accountAPI->get(
+            'get-prefix-pricing/outbound',
+            (new KeyValueFilter(['prefix' => $prefix]))->getQuery()
+        );
+        
         $prices = [];
-
-        foreach ($data as $p) {
-            $prefixPrice = new PrefixPrice();
-            $prefixPrice->fromArray($p);
-            $prices[] = $prefixPrice;
+        foreach ($data['prices'] as $priceData) {
+            $prices[] = $this->priceFactory->build($priceData, PriceFactory::TYPE_PREFIX);
         }
 
+        if (empty($prices)) {
+            throw new NotFoundException('No results found');
+        }
+       
         return $prices;
     }
 
@@ -107,9 +64,7 @@ class Client implements ClientAwareInterface
     public function getSmsPrice(string $country) : SmsPrice
     {
         $body = $this->makePricingRequest($country, 'sms');
-        $smsPrice = new SmsPrice();
-        $smsPrice->fromArray($body);
-        return $smsPrice;
+        return $this->priceFactory->build($body, PriceFactory::TYPE_SMS);
     }
 
     /**
@@ -118,9 +73,7 @@ class Client implements ClientAwareInterface
     public function getVoicePrice(string $country) : VoicePrice
     {
         $body = $this->makePricingRequest($country, 'voice');
-        $voicePrice = new VoicePrice();
-        $voicePrice->fromArray($body);
-        return $voicePrice;
+        return $this->priceFactory->build($body, PriceFactory::TYPE_VOICE);
     }
 
     /**
@@ -128,13 +81,13 @@ class Client implements ClientAwareInterface
      */
     protected function makePricingRequest($country, $pricingType) : array
     {
-        $api = $this->getAccountAPI();
-        $api->setBaseUri('/account/get-pricing/outbound/' . $pricingType);
-        $results = $api->search(new KeyValueFilter(['country' => $country]));
-        $data = $results->getPageData();
+        $data = $this->accountAPI->get(
+            'get-pricing/outbound/' . $pricingType,
+            (new KeyValueFilter(['country' => $country]))->getQuery()
+        );
 
         if (is_null($data)) {
-            throw new Exception\Server('No results found');
+            throw new NotFoundException('No results found');
         }
 
         return $data;
@@ -147,10 +100,10 @@ class Client implements ClientAwareInterface
      */
     public function getBalance() : Balance
     {
-        $data = $this->getAccountAPI()->get('get-balance');
+        $data = $this->accountAPI->get('get-balance');
         
         if (is_null($data)) {
-            throw new Exception\Server('No results found');
+            throw new Exception\Server('Unable to retrieve balance');
         }
 
         $balance = new Balance($data['value'], $data['autoReload']);
@@ -159,9 +112,7 @@ class Client implements ClientAwareInterface
 
     public function topUp($trx) : void
     {
-        $api = $this->getAccountAPI();
-        $api->setBaseUri('/account/top-up');
-        $api->submit(['trx' => $trx]);
+        $this->accountAPI->submit(['trx' => $trx], '/top-up');
     }
 
     /**
@@ -169,9 +120,7 @@ class Client implements ClientAwareInterface
      */
     public function getConfig() : Config
     {
-        $api = $this->getAccountAPI();
-        $api->setBaseUri('/account/settings');
-        $body = $api->submit();
+        $body = $this->accountAPI->submit([], '/settings');
 
         if ($body === '') {
             throw new Exception\Server('Response was empty');
@@ -204,10 +153,7 @@ class Client implements ClientAwareInterface
             $params['drCallBackUrl'] = $options['dr_callback_url'];
         }
 
-        $api = $this->getAccountAPI();
-        $api->setBaseUri('/account/settings');
-
-        $rawBody = $api->submit($params);
+        $rawBody = $this->accountAPI->submit($params, '/settings');
 
         if ($rawBody === '') {
             throw new Exception\Server('Response was empty');
@@ -227,18 +173,19 @@ class Client implements ClientAwareInterface
 
     public function listSecrets(string $apiKey) : SecretCollection
     {
-        $api = $this->getSecretsAPI();
-        
-        $data = $api->get($apiKey . '/secrets');
-        return @SecretCollection::fromApi($data);
+        $data = $this->secretsAPI->get($apiKey . '/secrets');
+        $secrets = [];
+        foreach ($data['_embedded']['secrets'] as $secretData) {
+            $secrets[] = new Secret($secretData);
+        }
+
+        return new SecretCollection($secrets, $data['_links']);
     }
 
     public function getSecret(string $apiKey, string $secretId) : Secret
     {
-        $api = $this->getSecretsAPI();
-
-        $data = $api->get($apiKey . '/secrets/' . $secretId);
-        return @Secret::fromApi($data);
+        $data = $this->secretsAPI->get($apiKey . '/secrets/' . $secretId);
+        return new Secret($data);
     }
 
     /**
@@ -246,7 +193,8 @@ class Client implements ClientAwareInterface
      */
     public function createSecret(string $apiKey, string $newSecret) : Secret
     {
-        $api = $this->getSecretsAPI();
+        $api = clone $this->secretsAPI;
+        $api->setBaseUrl($api->getClient()->getApiUrl());
         $api->setBaseUri('/accounts/' . $apiKey . '/secrets');
 
         try {
@@ -261,12 +209,13 @@ class Client implements ClientAwareInterface
             throw $e;
         }
 
-        return @Secret::fromApi($response);
+        return new Secret($response);
     }
 
     public function deleteSecret(string $apiKey, string $secretId) : void
     {
-        $api = $this->getSecretsAPI();
+        $api = clone $this->secretsAPI;
+        $api->setBaseUrl($api->getClient()->getApiUrl());
         $api->setBaseUri('/accounts/' . $apiKey . '/secrets');
         $api->delete($secretId);
     }

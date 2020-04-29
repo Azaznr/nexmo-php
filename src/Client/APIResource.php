@@ -245,10 +245,10 @@ class APIResource implements ClientAwareInterface
     /**
      * Allows form URL-encoded POST requests
      */
-    public function submit(array $formData = []) : string
+    public function submit(array $formData = [], string $uri = '') : string
     {
         $request = new Request(
-            $this->baseUrl . $this->baseUri,
+            $this->baseUrl . $this->baseUri . $uri,
             'POST',
             'php://temp',
             ['content-type' => 'application/x-www-form-urlencoded']

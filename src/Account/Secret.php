@@ -36,15 +36,6 @@ class Secret implements \ArrayAccess
         return $this['_links'];
     }
 
-    /**
-     * @deprecated Instatiate the object directly
-     */
-    public static function fromApi($data)
-    {
-        trigger_error('Please instatiate a Nexmo\Account\Secret object instead of using fromApi', E_USER_DEPRECATED);
-        return new self($data);
-    }
-
     public function offsetExists($offset)
     {
         return isset($this->data[$offset]);

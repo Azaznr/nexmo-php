@@ -2,58 +2,40 @@
 
 namespace Nexmo\Account;
 
-use ArrayAccess;
-use Nexmo\Client\Exception\Exception;
 use Nexmo\Network;
-use Nexmo\Entity\EntityInterface;
 use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
-use Nexmo\Entity\JsonSerializableInterface;
-use Nexmo\Entity\JsonResponseTrait;
-use Nexmo\Entity\JsonSerializableTrait;
-use Nexmo\Entity\NoRequestResponseTrait;
-use Nexmo\Entity\JsonUnserializableInterface;
 
 /**
  * This class will no longer be accessible via array access, nor contain request/response information after v2.
  */
-abstract class Price implements
-    EntityInterface,
-    \JsonSerializable,
-    JsonSerializableInterface,
-    JsonUnserializableInterface,
-    ArrayAccess,
-    ArrayHydrateInterface
+abstract class Price implements \JsonSerializable, ArrayHydrateInterface
 {
-    use JsonSerializableTrait;
-    use NoRequestResponseTrait;
-    use JsonResponseTrait;
-
     protected $data = [];
 
     public function getCountryCode()
     {
-        return $this['country_code'];
+        return $this->data['country_code'];
     }
 
     public function getCountryDisplayName()
     {
-        return $this['country_display_name'];
+        return $this->data['country_display_name'];
     }
 
     public function getCountryName()
     {
-        return $this['country_name'];
+        return $this->data['country_name'];
     }
 
     public function getDialingPrefix()
     {
-        return $this['dialing_prefix'];
+        return $this->data['dialing_prefix'];
     }
 
     public function getDefaultPrice()
     {
-        if (isset($this['default_price'])) {
-            return $this['default_price'];
+        if (isset($this->data['default_price'])) {
+            return $this->data['default_price'];
         }
 
         return $this['mt'];
@@ -61,12 +43,12 @@ abstract class Price implements
 
     public function getCurrency()
     {
-        return $this['currency'];
+        return $this->data['currency'];
     }
 
     public function getNetworks()
     {
-        return $this['networks'];
+        return $this->data['networks'];
     }
 
     public function getPriceForNetwork($networkCode)
@@ -141,25 +123,5 @@ abstract class Price implements
     public function toArray(): array
     {
         return $this->data;
-    }
-
-    public function offsetExists($offset)
-    {
-        return isset($this->data[$offset]);
-    }
-
-    public function offsetGet($offset)
-    {
-        return $this->data[$offset];
-    }
-
-    public function offsetSet($offset, $value)
-    {
-        throw new Exception('Price is read only');
-    }
-
-    public function offsetUnset($offset)
-    {
-        throw new Exception('Price is read only');
     }
 }

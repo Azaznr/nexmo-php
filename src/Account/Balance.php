@@ -2,22 +2,13 @@
 
 namespace Nexmo\Account;
 
-use ArrayAccess;
-use Nexmo\Client\Exception\Exception;
 use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
-use Nexmo\Entity\JsonSerializableInterface;
-use Nexmo\Entity\JsonUnserializableInterface;
 
 /**
  * This class will no longer be accessible via array keys past v2
  * @todo Have the JSON unserialize/serialize keys match with $this->data keys
  */
-class Balance implements
-    \JsonSerializable,
-    JsonSerializableInterface,
-    JsonUnserializableInterface,
-    ArrayAccess,
-    ArrayHydrateInterface
+class Balance implements \JsonSerializable, ArrayHydrateInterface
 {
     /**
      * @var array
@@ -35,42 +26,17 @@ class Balance implements
 
     public function getBalance()
     {
-        return $this['balance'];
+        return $this->data['balance'];
     }
 
     public function getAutoReload()
     {
-        return $this['auto_reload'];
-    }
-
-    public function jsonUnserialize(array $json)
-    {
-        $this->fromArray($json);
+        return $this->data['auto_reload'];
     }
 
     public function jsonSerialize()
     {
         return $this->data;
-    }
-
-    public function offsetExists($offset)
-    {
-        return isset($this->data[$offset]);
-    }
-
-    public function offsetGet($offset)
-    {
-        return $this->data[$offset];
-    }
-
-    public function offsetSet($offset, $value)
-    {
-        throw new Exception('Balance is read only');
-    }
-
-    public function offsetUnset($offset)
-    {
-        throw new Exception('Balance is read only');
     }
 
     public function fromArray(array $data)

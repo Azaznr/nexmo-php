@@ -2,18 +2,9 @@
 
 namespace Nexmo\Account;
 
-use ArrayAccess;
-use Nexmo\Client\Exception\Exception;
 use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
-use Nexmo\Entity\JsonSerializableInterface;
-use Nexmo\Entity\JsonUnserializableInterface;
 
-class Config implements
-    \JsonSerializable,
-    JsonSerializableInterface,
-    JsonUnserializableInterface,
-    ArrayAccess,
-    ArrayHydrateInterface
+class Config implements \JsonSerializable, ArrayHydrateInterface
 {
     public function __construct($sms_callback_url = null, $dr_callback_url = null, $max_outbound_request = null, $max_inbound_request = null, $max_calls_per_second = null)
     {
@@ -36,27 +27,27 @@ class Config implements
 
     public function getSmsCallbackUrl()
     {
-        return $this['sms_callback_url'];
+        return $this->data['sms_callback_url'];
     }
 
     public function getDrCallbackUrl()
     {
-        return $this['dr_callback_url'];
+        return $this->data['dr_callback_url'];
     }
 
     public function getMaxOutboundRequest()
     {
-        return $this['max_outbound_request'];
+        return $this->data['max_outbound_request'];
     }
 
     public function getMaxInboundRequest()
     {
-        return $this['max_inbound_request'];
+        return $this->data['max_inbound_request'];
     }
 
     public function getMaxCallsPerSecond()
     {
-        return $this['max_calls_per_second'];
+        return $this->data['max_calls_per_second'];
     }
 
     public function jsonUnserialize(array $json)
@@ -83,25 +74,5 @@ class Config implements
     public function toArray(): array
     {
         return $this->data;
-    }
-
-    public function offsetExists($offset)
-    {
-        return isset($this->data[$offset]);
-    }
-
-    public function offsetGet($offset)
-    {
-        return $this->data[$offset];
-    }
-
-    public function offsetSet($offset, $value)
-    {
-        throw new Exception('Balance is read only');
-    }
-
-    public function offsetUnset($offset)
-    {
-        throw new Exception('Balance is read only');
     }
 }

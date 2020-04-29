@@ -2,7 +2,7 @@
 
 namespace Nexmo\Entity\Hydrator;
 
-class ArrayHydrator implements HydratorInterface
+class ArrayHydrator implements PrototypeHydrator
 {
     /**
      * @var ArrayHydratorInterface
@@ -12,12 +12,20 @@ class ArrayHydrator implements HydratorInterface
     public function hydrate(array $data)
     {
         $object = clone $this->prototype;
+        return $this->hydrateObject($data, $object);
+    }
+
+    public function hydrateObject(array $data, $object)
+    {
         $object->fromArray($data);
 
         return $object;
     }
 
-    public function setPrototype(ArrayHydrateInterface $prototype)
+    /**
+     * @param ArrayHydrateInterface $prototype
+     */
+    public function setPrototype($prototype)
     {
         $this->prototype = $prototype;
     }
