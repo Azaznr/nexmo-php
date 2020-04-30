@@ -14,10 +14,6 @@ use PHPUnit\Framework\TestCase;
 
 class SmsPriceTest extends TestCase
 {
-    public function setUp()
-    {
-    }
-
     /**
      * @dataProvider smsPriceProvider
      */
@@ -62,7 +58,7 @@ class SmsPriceTest extends TestCase
         $r = [];
 
         $smsPrice = new SmsPrice();
-        @$smsPrice->jsonUnserialize([
+        @$smsPrice->fromArray([
             'dialing_prefix' => 1,
             'default_price' => '0.00512',
             'currency' => 'EUR',

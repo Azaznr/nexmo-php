@@ -1,58 +1,52 @@
 <?php
+declare(strict_types=1);
 
 namespace Nexmo\Account;
 
-use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
 use Nexmo\InvalidResponseException;
 
-class Secret implements \ArrayAccess
+class Secret
 {
-    protected $data;
+    /**
+     * @var string
+     */
+    protected $createdAt;
 
-    public function __construct($data)
+    /**
+     * @var string
+     */
+    protected $id;
+
+    /**
+     * @var array<string, array>
+     */
+    protected $links;
+
+    /**
+     * @param array<string, array> $links External links from the API response
+     */
+    public function __construct(string $id, string $createdAt, array $links)
     {
-        if (!isset($data['id'])) {
-            throw new InvalidResponseException("Missing key: 'id");
-        }
-        if (!isset($data['created_at'])) {
-            throw new InvalidResponseException("Missing key: 'created_at");
-        }
-
-        $this->data = $data;
+        $this->createdAt = $createdAt;
+        $this->id = $id;
+        $this->links = $links;
     }
 
-    public function getId()
+    public function getId() : string
     {
-        return $this['id'];
+        return $this->id;
     }
 
-    public function getCreatedAt()
+    public function getCreatedAt() : string
     {
-        return $this['created_at'];
+        return $this->createdAt;
     }
 
-    public function getLinks()
+    /**
+     * @return array<string, array>
+     */
+    public function getLinks() : array
     {
-        return $this['_links'];
-    }
-
-    public function offsetExists($offset)
-    {
-        return isset($this->data[$offset]);
-    }
-
-    public function offsetGet($offset)
-    {
-        return $this->data[$offset];
-    }
-
-    public function offsetSet($offset, $value)
-    {
-        throw new \Exception('Secret::offsetSet is not implemented');
-    }
-
-    public function offsetUnset($offset)
-    {
-        throw new \Exception('Secret::offsetUnset is not implemented');
+        return $this->links;
     }
 }

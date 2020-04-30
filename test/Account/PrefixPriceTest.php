@@ -52,7 +52,7 @@ class PrefixPriceTest extends TestCase
         $r = [];
 
         $prefixPrice = new PrefixPrice();
-        @$prefixPrice->jsonUnserialize([
+        @$prefixPrice->fromArray([
             'country' => 'ZW',
             'name' => 'Zimbabwe',
             'prefix' => 263,

@@ -1,5 +1,5 @@
 <?php
-
+declare(strict_types=1);
 namespace Nexmo\Account;
 
 use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
@@ -11,44 +11,56 @@ use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
 class Balance implements \JsonSerializable, ArrayHydrateInterface
 {
     /**
-     * @var array
+     * @var bool
      */
-    public $data;
+    protected $autoReload;
 
     /**
-     * @todo Have these take null values, since we offer an unserialize option to populate
+     * @var float
      */
-    public function __construct($balance, $autoReload)
+    protected $balance;
+
+    public function __construct(float $balance, bool $autoReload)
     {
-        $this->data['balance'] = $balance;
-        $this->data['auto_reload'] = $autoReload;
+        $this->balance = $balance;
+        $this->autoReload = $autoReload;
     }
 
-    public function getBalance()
+    public function getBalance() : float
     {
-        return $this->data['balance'];
+        return $this->balance;
     }
 
-    public function getAutoReload()
+    public function getAutoReload() : bool
     {
-        return $this->data['auto_reload'];
+        return $this->autoReload;
     }
 
+    /**
+     * @return array<string, float|bool>
+     */
     public function jsonSerialize()
     {
-        return $this->data;
+        return $this->toArray();
     }
 
-    public function fromArray(array $data)
+    /**
+     * @param array<string, float|bool> $data Data about the account balance
+     */
+    public function fromArray(array $data) : void
     {
-        $this->data = [
-            'balance' => $data['value'],
-            'auto_reload' => $data['autoReload']
-        ];
+        $this->balance = (float) $data['value'] ?? null;
+        $this->autoReload = $data['autoReload'] ?? null;
     }
 
+    /**
+     * @return array<string, float|bool>
+     */
     public function toArray(): array
     {
-        return $this->data;
+        return [
+            'balance' => $this->getBalance(),
+            'autoReload' => $this->getAutoReload(),
+        ];
     }
 }

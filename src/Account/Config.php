@@ -6,7 +6,18 @@ use Nexmo\Entity\Hydrator\ArrayHydrateInterface;
 
 class Config implements \JsonSerializable, ArrayHydrateInterface
 {
-    public function __construct($sms_callback_url = null, $dr_callback_url = null, $max_outbound_request = null, $max_inbound_request = null, $max_calls_per_second = null)
+    /**
+     * @var array<string, int|string>
+     */
+    protected $data;
+
+    public function __construct(
+        string $sms_callback_url = null,
+        string $dr_callback_url = null,
+        int $max_outbound_request = null,
+        int $max_inbound_request = null,
+        int $max_calls_per_second = null
+    )
     {
         if (!is_null($sms_callback_url)) {
             $this->data['sms_callback_url'] = $sms_callback_url;
@@ -25,37 +36,35 @@ class Config implements \JsonSerializable, ArrayHydrateInterface
         }
     }
 
-    public function getSmsCallbackUrl()
+    public function getSmsCallbackUrl() : string
     {
         return $this->data['sms_callback_url'];
     }
 
-    public function getDrCallbackUrl()
+    public function getDrCallbackUrl() : string
     {
         return $this->data['dr_callback_url'];
     }
 
-    public function getMaxOutboundRequest()
+    public function getMaxOutboundRequest() : int
     {
         return $this->data['max_outbound_request'];
     }
 
-    public function getMaxInboundRequest()
+    public function getMaxInboundRequest() : int
     {
         return $this->data['max_inbound_request'];
     }
 
-    public function getMaxCallsPerSecond()
+    public function getMaxCallsPerSecond() : int
     {
         return $this->data['max_calls_per_second'];
     }
 
-    public function jsonUnserialize(array $json)
-    {
-        $this->fromArray($json);
-    }
-
-    public function fromArray(array $data)
+    /**
+     * @param array<string, int|string> $data Incoming data to set the object
+     */
+    public function fromArray(array $data) : void
     {
         $this->data = [
             'sms_callback_url' => $data['sms_callback_url'],
@@ -66,11 +75,17 @@ class Config implements \JsonSerializable, ArrayHydrateInterface
         ];
     }
 
+    /**
+     * @return array<string, array|scalar>
+     */
     public function jsonSerialize()
     {
         return $this->toArray();
     }
 
+    /**
+     * @return array<string, int|string>
+     */
     public function toArray(): array
     {
         return $this->data;
